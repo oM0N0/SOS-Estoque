@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOS-Estoque | Controle de Estoque</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<div class="app">
+
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">S</div>
+            <div>
+                <strong>SOS-Estoque</strong>
+                <span>Gestão de estoque</span>
+            </div>
+        </div>
+
+        <nav class="menu">
+            <a href="#dashboard" class="menu-link active">⌂ <span>Dashboard</span></a>
+            <a href="#produtos" class="menu-link">▣ <span>Produtos</span></a>
+            <a href="#movimentacoes" class="menu-link">↕ <span>Movimentações</span></a>
+            <a href="#alertas" class="menu-link">! <span>Alertas</span></a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <span>Sistema</span>
+            <small>Controle interno de estoque</small>
+        </div>
+    </aside>
+
+    <div class="content">
+
+    <header class="topbar">
+    <div>
+        <span class="eyebrow">PAINEL DE CONTROLE</span>
+        <h1>Sistema de Administração de Estoque</h1>
+        <p>Gerencie produtos, entradas e saídas do seu estoque.</p>
+    </div>
+    <div class="topbar-badge">● Sistema online</div>
+    </header>
+
+        <main>
+
+            <div th:if="${mensagem}" class="alert success">
+                <span>✓</span>
+                <span th:text="${mensagem}"></span>
+            </div>
+            <div th:if="${erro}" class="alert error">
+                <span>!</span>
+                <span th:text="${erro}"></span>
+            </div>
+
+            <section id="dashboard" class="section">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">VISÃO GERAL</span>
+                        <h2>Resumo do estoque</h2>
+                    </div>
+                </div>
+
+                <div class="cards">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">▣</div>
+                        <div>
+                            <span>Total de produtos</span>
+                            <strong th:text="${totalProdutos}">0</strong>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon red">!</div>
+                        <div>
+                            <span>Estoque crítico</span>
+                            <strong th:text="${#lists.size(criticos)}">0</strong>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon green">R$</div>
+                        <div>
+                            <span>Valor do estoque</span>
+                            <strong th:text="${'R$ ' + #numbers.formatDecimal(valorEstoque, 1, 2)}">R$ 0,00</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="produtos" class="section">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">CADASTRO</span>
+                        <h2>Produtos</h2>
+                        <p>Cadastre novos produtos e consulte o inventário.</p>
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <div class="card-title">
+                        <div class="title-icon">+</div>
+                        <div>
+                            <h3>Cadastrar produto</h3>
+                            <p>Preencha os dados abaixo para adicionar um produto.</p>
+                        </div>
+                    </div>
+
+                    <form method="post" action="/produtos" class="product-form">
+                        <div class="field">
+                            <label>Código</label>
+                            <input type="number" name="codigo" min="1" placeholder="Ex.: 1001" required>
+                        </div>
+                        <div class="field">
+                            <label>Nome do produto</label>
+                            <input type="text" name="nome" placeholder="Ex.: Notebook Dell" required>
+                        </div>
+                        <div class="field">
+                            <label>Categoria</label>
+                            <input type="text" name="categoria" placeholder="Ex.: Informática" required>
+                        </div>
+                        <div class="field">
+                            <label>Preço unitário</label>
+                            <input type="number" name="preco" min="0.01" step="0.01" placeholder="0,00" required>
+                        </div>
+                        <div class="field">
+                            <label>Quantidade inicial</label>
+                            <input type="number" name="quantidade" min="0" placeholder="0" required>
+                        </div>
+                        <div class="field">
+                            <label>Estoque mínimo</label>
+                            <input type="number" name="estoqueMinimo" min="0" placeholder="0" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="primary">Cadastrar produto</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="panel inventory-panel">
+                    <div class="section-title">
+                        <div>
+                            <h3>Inventário</h3>
+                            <span class="muted">Produtos cadastrados no sistema</span>
+                        </div>
+                        <form method="get" action="/" class="search-form">
+                            <input type="text" name="busca" placeholder="Pesquisar produto..." th:value="${busca}">
+                            <button type="submit">Buscar</button>
+                        </form>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Produto</th>
+                                <th>Categoria</th>
+                                <th>Preço</th>
+                                <th>Quantidade</th>
+                                <th>Mínimo</th>
+                                <th>Valor total</th>
+                                <th>Status</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="produto : ${produtos}">
+                                <td><span class="code" th:text="${produto.codigo}"></span></td>
+                                <td><strong th:text="${produto.nome}"></strong></td>
+                                <td th:text="${produto.categoria}"></td>
+                                <td th:text="${'R$ ' + #numbers.formatDecimal(produto.preco, 1, 2)}"></td>
+                                <td><strong th:text="${produto.quantidade}"></strong></td>
+                                <td th:text="${produto.estoqueMinimo}"></td>
+                                <td th:text="${'R$ ' + #numbers.formatDecimal(produto.valorTotal, 1, 2)}"></td>
+                                <td>
+                                    <span th:if="${produto.estoqueCritico}" class="status critical">CRÍTICO</span>
+                                    <span th:unless="${produto.estoqueCritico}" class="status normal">NORMAL</span>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(produtos)}">
+                                <td colspan="8" class="empty">Nenhum produto encontrado.</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="movimentacoes" class="section">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">OPERAÇÃO</span>
+                        <h2>Movimentações</h2>
+                        <p>Registre entradas e saídas de produtos.</p>
+                    </div>
+                </div>
+
+                <div class="movement-layout">
+                    <div class="form-card">
+                        <div class="card-title">
+                            <div class="title-icon">↕</div>
+                            <div>
+                                <h3>Nova movimentação</h3>
+                                <p>Atualize o saldo de um produto.</p>
+                            </div>
+                        </div>
+
+                        <form method="post" action="/movimentacoes">
+                            <div class="field">
+                                <label>Código do produto</label>
+                                <input type="number" name="codigo" min="1" placeholder="Código" required>
+                            </div>
+                            <div class="field">
+                                <label>Quantidade</label>
+                                <input type="number" name="quantidade" min="1" placeholder="Quantidade" required>
+                            </div>
+                            <div class="field">
+                                <label>Tipo de movimentação</label>
+                                <select name="tipo" required>
+                                    <option value="entrada">Entrada</option>
+                                    <option value="saída">Saída</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="primary">Registrar movimentação</button>
+                        </form>
+                    </div>
+
+                    <div class="panel history-panel">
+                        <div class="section-title">
+                            <div>
+                                <h3>Histórico recente</h3>
+                                <span class="muted">Últimas movimentações registradas</span>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Tipo</th>
+                                    <th>Qtd.</th>
+                                    <th>Data</th>
+                                    <th>Saldo</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="mov : ${historico}">
+                                    <td><strong th:text="${mov.produto.nome}"></strong></td>
+                                    <td>
+                                    <span th:if="${mov.tipo == 'entrada'}" class="movement entry">ENTRADA</span>
+                                    <span th:unless="${mov.tipo == 'entrada'}" class="movement exit">SAÍDA</span>
+                                    </td>
+                                    <td th:text="${mov.quantidadeMovimentada}"></td>
+                                    <td th:text="${mov.dataFormatada}"></td>
+                                    <td th:text="${mov.saldoResultante}"></td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(historico)}">
+                                    <td colspan="5" class="empty">Nenhuma movimentação registrada.</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="alertas" class="section">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">ATENÇÃO</span>
+                        <h2>Alertas de estoque</h2>
+                        <p>Produtos que atingiram ou estão abaixo do estoque mínimo.</p>
+                    </div>
+                </div>
+
+                <div class="panel alert-panel">
+                    <div th:if="${#lists.isEmpty(criticos)}" class="empty success-empty">
+                        <div class="empty-icon">✓</div>
+                        <strong>Estoque em dia</strong>
+                        <span>Nenhum produto está em estoque crítico.</span>
+                    </div>
+
+                    <div th:unless="${#lists.isEmpty(criticos)}" class="critical-grid">
+                        <div th:each="produto : ${criticos}" class="critical-item">
+                            <div class="critical-icon">!</div>
+                            <div>
+                                <strong th:text="${produto.nome}"></strong>
+                                <span>
+                                    Código <b th:text="${produto.codigo}"></b>
+                                    · Saldo <b th:text="${produto.quantidade}"></b>
+                                    · Mínimo <b th:text="${produto.estoqueMinimo}"></b>
+                                </span>
+                            </div>
+                            <span class="status critical">CRÍTICO</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer>
+            SOS-Estoque · Sistema de Controle de Estoque
+        </footer>
+    </div>
+</div>
+
+<script>
+    const links = document.querySelectorAll('.menu-link');
+    const sections = document.querySelectorAll('.section');
+
+    function activateMenu() {
+        let current = '';
+        sections.forEach(section => {
+            const top = section.getBoundingClientRect().top;
+            if (top <= 160) current = section.id;
+        });
+
+        links.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+        });
+    }
+
+    window.addEventListener('scroll', activateMenu);
+    links.forEach(link => {
+        link.addEventListener('click', () => {
+            links.forEach(item => item.classList.remove('active'));
+            link.classList.add('active');
+        });
+    });
+</script>
+
+</body>
+</html>
